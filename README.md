@@ -1,10 +1,13 @@
+# Frida MMO Maze Agent
+
 ### How to compile & load
 
 ```sh
-$ git clone git://github.com/oleavr/frida-agent-example.git
-$ cd frida-agent-example/
+$ git clone https://github.com/bburky/mmo-maze-frida
+$ cd mmo-maze-frida/
 $ npm install
-$ frida -U -f com.example.android --no-pause -l _agent.js
+$ Maze.exe
+$ frida --runtime=v8 --debug Maze.exe --load _agent.js
 ```
 
 ### Development workflow
