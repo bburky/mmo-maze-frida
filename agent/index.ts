@@ -1,20 +1,25 @@
 import { log } from "./logger";
 
-interface Symbol {
-    Address: number;
-    Name: string;
-    Signature: string;
-}
+import * as maze from "./maze";
+const symbols = maze.symbols
+const GameAssembly = maze.GameAssembly;
 
-// Import symbols extracted using https://github.com/Perfare/Il2CppDumper
-import * as il2cpp from '../script.json';
-const symbols = new Map<string, Symbol>(il2cpp.ScriptMethod.map(m => [ m.Name, m ]));
+log("")
+log("[+] Hooking functions...");
 
-const module = Module.load("GameAssembly.dll")
-const baseAddr = Module.getBaseAddress("GameAssembly.dll");
-const ServerManager$$sendEmoji = symbols.get("ServerManager$$sendEmoji")!;
+let NormalMovement: NativePointer | null = null
 
-console.log("Hooking...");
+log(`    Hooking NormalMovement$$ProcessPlanarMovement`);
+const processPlanarMovement = Interceptor.attach(maze.nativePointer("Lightbug.CharacterControllerPro.Implementation.NormalMovement$$ProcessPlanarMovement")!, {
+    onEnter: function (args) {
+        log("")
+        log(`[+] Called NormalMovement$$ProcessPlanarMovement`);
+        NormalMovement = args[0]
+        log(`    Saved NormalMovement pointer`);
+        processPlanarMovement.detach()
+        speedHack(5);
+    }
+});
 
 ///////////////////////////////////////////////////////////////////////////////
 // Emoji
@@ -26,22 +31,64 @@ console.log("Hooking...");
 //
 // CSCG{Your_hack_got_reported_to_authorities!}
 
-// Current emoji value:
-let emoji = 0x00;
+let emoji = 0x00; // Current emoji value
+let ServerManager: NativePointer | null = null;
 
-Interceptor.attach(baseAddr.add(ServerManager$$sendEmoji.Address), {
+log(`    Hooking ServerManager$$sendEmoji`);
+Interceptor.attach(maze.nativePointer("ServerManager$$sendEmoji")!, {
     onEnter: function (args) {
-        console.log("")
-        console.log(`[+] Called ${ServerManager$$sendEmoji.Signature}`);
-        console.log(`Changing emoji from ${args[1]} to ${emoji}`);
-        args[1] = new NativePointer(emoji++);
+        log("")
+        log(`[+] Called ServerManager$$sendEmoji`);
+        ServerManager = args[0] // Save for future use
+        log(`    Saved ServerManager pointer`);
+        // Only change the emoji for the 1 key.
+        if (args[1].toInt32() == 0x17) {
+            log(`[+] Changing emoji from ${args[1]} to ${emoji}`);
+            args[1] = new NativePointer(emoji++);
+        }
     }
 });
 
-console.log("Init done");
+///////////////////////////////////////////////////////////////////////////////
+// The Floor Is Lava
+// 
+// Change the jump apex and jump duration to 10 to allow jumping much higher
+// and very slowly gliding back down. Explore the world until you find the
+// lava area. Jump to reach the middle.
+// 
+// Manually trigger jumpHack() using the JavaScript debug console.
+// 
+// CSCG{FLYHAX_TOO_CLOSE_TO_THE_SUN!}
+
+function jumpHack() {
+    log(`[+] Breaking jumping so it is flying/gliding`);
+    const verticalMovementParameters = NormalMovement!.add(56).readPointer();
+    const jumpApexHeight = verticalMovementParameters.add(20);
+    const jumpApexDuration = verticalMovementParameters.add(24);
+    jumpApexHeight.writeFloat(10);
+    jumpApexDuration.writeFloat(10);
+}
+
+// Setting speed to 10 works, but then you can't run because you are moved back
+// to your previous location (by the server?). Set the speed to 5 to allow both
+// walking and running.
+function speedHack(newSpeed: number) {
+    log(`[+] Setting planar movement speed to ${newSpeed}`);
+    const planarMovementParameters = NormalMovement!.add(48).readPointer();
+    const speed = planarMovementParameters.add(16);
+    speed.writeFloat(newSpeed);
+}
+
+log("[+] Hooking done");
 
 // Export some globals for use in debug console:
 declare var global: any;
-global.baseAddr = baseAddr;
-global.il2cpp = il2cpp;
+global.nativeFunction = maze.nativeFunction;
+global.nativePointer = maze.nativePointer;
+global.GameAssembly = GameAssembly;
 global.symbols = symbols;
+global.module = module;
+global.getServerManager = () => ServerManager;
+global.getNormalMovement = () => NormalMovement;
+global.speedHack = speedHack;
+global.jumpHack = jumpHack;
