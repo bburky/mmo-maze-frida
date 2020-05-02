@@ -1,8 +1,5 @@
 import { log } from "./logger";
-
 import * as maze from "./maze";
-const symbols = maze.symbols
-const GameAssembly = maze.GameAssembly;
 
 log("")
 log("[+] Hooking functions...");
@@ -69,7 +66,6 @@ function jumpHack(height: number, duration: number) {
 // CSCG{SPEEDH4X_MAZE_RUNNER_BUNNYYYY}
 
 let NormalMovement: NativePointer | null = null
-let ServerManager: NativePointer | null = null;
 
 log(`    Hooking NormalMovement$$ProcessPlanarMovement`);
 const processPlanarMovement = Interceptor.attach(maze.nativePointer("Lightbug.CharacterControllerPro.Implementation.NormalMovement$$ProcessPlanarMovement")!, {
@@ -92,6 +88,53 @@ function speedHack(newSpeed: number) {
     speed.writeFloat(newSpeed);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Map Radar
+//
+// Hook the NPCController$$newPosition function which gets passed each updated
+// position and rotation for NPC players.
+//
+// To use run recordNpcPositions() in the debug console. Then wait a few
+// minutes and dump the data with something like:
+//    JSON.stringify(npcPositions.get(375))
+//
+// CSCG{RADAR_HACK_XYZ}
+
+const npcPositions = new Map<number, number[][]>();
+
+function recordNpcPositions() {
+    log(`    Hooking NPCController$$newPosition`);
+    // Hook using Interceptor.replace() because it allows specifying types of
+    // arguments to give us arrays of floats, etc.
+    const NPCController$$newPosition_args = ["pointer", ["float", "float", "float"], ["float", "float", "float"]];
+    const NPCController$$newPosition = new NativeFunction(maze.nativePointer("NPCController$$newPosition")!, "void", NPCController$$newPosition_args);
+    Interceptor.replace(
+        NPCController$$newPosition,
+        new NativeCallback((that: NativePointer, position: number[], rotation: number[]) => {
+            // log("")
+            // log(`[+] Called NPCController$$newPosition`);
+            // log(`    NPC: ${position}`);
+
+            // Unique(?) UID per NPC. I failed to read the NPC name.
+            const NPCController = that.readPointer();
+            const uid = NPCController.add(0x5C).readU32();
+
+            let positions = npcPositions.get(uid);
+            if (!positions) {
+                positions = [];
+                npcPositions.set(uid, positions)
+            }
+            // Push x and z coordinates
+            positions.push([position[0], position[2]]);
+
+            // Call the original function:
+            return NPCController$$newPosition(that, position, rotation);
+        }, 'void', NPCController$$newPosition_args)
+    );
+}
+
+let ServerManager: NativePointer | null = null;
+
 log(`    Hooking ServerManager$$Update`);
 const ServerManager$$Update = Interceptor.attach(maze.nativePointer("ServerManager$$Update")!, {
     onEnter: function (args) {
@@ -107,12 +150,10 @@ log("[+] Hooking done");
 
 // Export some globals for use in debug console:
 declare const global: any;
-global.nativeFunction = maze.nativeFunction;
-global.nativePointer = maze.nativePointer;
-global.GameAssembly = GameAssembly;
-global.symbols = symbols;
-global.module = module;
+global.maze = maze;
 global.getServerManager = () => ServerManager;
 global.getNormalMovement = () => NormalMovement;
 global.speedHack = speedHack;
 global.jumpHack = jumpHack;
+global.recordNpcPositions = recordNpcPositions;
+global.npcPositions = npcPositions;

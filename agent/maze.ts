@@ -2,16 +2,27 @@ import { log, error } from "./logger";
 
 export interface Il2cpp {
     ScriptMethod: Symbol[];
-    // TODO: ScriptString
+    ScriptString: ScriptString[];
     ScriptMetadata: Symbol[];
-    // TODO: ScriptMetadataMethod
+    ScriptMetadataMethod: ScriptMetadataMethod[];
     Addresses: number[];
+}
+
+export interface ScriptMetadataMethod {
+    Address: number;
+    Name: string;
+    MethodAddress: number;
 }
 
 export interface Symbol {
     Address: number;
     Name: string;
     Signature: string;
+}
+
+export interface ScriptString {
+    Address: number;
+    Value: string;
 }
 
 function parseType(type: string) {
@@ -33,7 +44,7 @@ function parseParameters(parameters: string) {
 }
 
 export function nativeFunction(symbolName: string) {
-    const symbol = symbols.get(symbolName);
+    const symbol = ScriptMethod.get(symbolName);
     if (!symbol) {
         error(`Symbol not found ${symbolName}`);
         return null;
@@ -46,7 +57,7 @@ export function nativeFunction(symbolName: string) {
 }
 
 export function nativePointer(symbolName: string) {
-    const symbol = symbols.get(symbolName);
+    const symbol = ScriptMethod.get(symbolName);
     if (!symbol) {
         error(`Symbol not found ${symbolName}`);
         return null;
@@ -56,11 +67,14 @@ export function nativePointer(symbolName: string) {
 
 // Import symbols extracted using https://github.com/Perfare/Il2CppDumper
 import * as il2cpp from '../il2cpp/script.json';
+export {il2cpp};
 
-// There are actually duplicate symbol names if methods have overloaded
-// arguments, so this technically is broken.
-// Thankfully we don't care about any of those methods though.
-export const symbols = new Map((<Il2cpp>il2cpp).ScriptMethod.map(m => [m.Name, m]));
+// There are actually duplicate symbol names if methods are overloaded, so this
+// is technically broken. Thankfully we don't care about any of those methods.
+export const ScriptMethod = new Map((<Il2cpp>il2cpp).ScriptMethod.map(m => [m.Name, m]));
+export const ScriptMetadata = new Map((<Il2cpp>il2cpp).ScriptMetadata.map(m => [m.Name, m]));
+export const ScriptMetadataMethod = new Map((<Il2cpp>il2cpp).ScriptMetadataMethod.map(m => [m.Name, m]));
+export const ScriptString = new Map((<Il2cpp>il2cpp).ScriptString.map(m => [m.Value, m.Address]));
 
 export const GameAssembly = Module.load("GameAssembly.dll")
 
