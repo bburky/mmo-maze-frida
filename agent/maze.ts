@@ -55,7 +55,7 @@ export function nativePointer(symbolName: string) {
 }
 
 // Import symbols extracted using https://github.com/Perfare/Il2CppDumper
-import * as il2cpp from '../script.json';
+import * as il2cpp from '../il2cpp/script.json';
 
 // There are actually duplicate symbol names if methods have overloaded
 // arguments, so this technically is broken.
