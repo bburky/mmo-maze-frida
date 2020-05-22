@@ -1,6 +1,10 @@
 # Frida MMO Maze Agent
 
-See https://lightbug14.gitbook.io/ for documentation on the character controller.
+This Frida agent is a solver for the [MMO Maze CTF](http://maze.liveoverflow.com/). This agent was designed to use the [Windows Maze v2.1 binary](https://static.allesctf.net/challenges/95a402a5b93a4424bcba9a46a0c9ef153025da6fe4aa57c6d35769d0c2a70878/Maze_v2.1_windows.zip).
+
+See https://lightbug14.gitbook.io/ for some documentation on the character controller used in the game.
+
+This project uses [frida-agent-example](https://github.com/oleavr/frida-agent-example) as a base project structure.
 
 ### How to compile & load
 
@@ -30,6 +34,9 @@ $ npm run watch
 And use an editor like Visual Studio Code for code completion and instant
 type-checking feedback.
 
+### Debug
+
+Attach to the v8 runtime debugger using <chrome://inspect> or [attach to the debugger using VS Code](https://code.visualstudio.com/docs/nodejs/nodejs-debugging). A [launch.json](.vscode/launch.json) configuration is provided to attach to a running debugger using VS Code.
 
 ### Extract symbols
 
