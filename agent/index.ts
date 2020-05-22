@@ -22,7 +22,8 @@ Interceptor.attach(maze.nativePointer("ServerManager$$sendEmoji")!, {
         log("")
         log(`[+] Called ServerManager$$sendEmoji`);
         // Only change the emoji for the 1 key.
-        if (args[1].toInt32() == 0x17) {
+        const currentEmoji = args[1].toInt32();
+        if (currentEmoji == 0x17) {
             log(`[+] Changing emoji from ${args[1]} to ${emoji}`);
             args[1] = new NativePointer(emoji++);
         }
@@ -146,6 +147,19 @@ const ServerManager$$Update = Interceptor.attach(maze.nativePointer("ServerManag
     }
 });
 
+let CharacterActor: NativePointer | null = null;
+
+log(`    Hooking CharacterActor$$UpdateCharacter`);
+const updateCharacter = Interceptor.attach(maze.nativePointer("Lightbug.CharacterControllerPro.Core.CharacterActor$$UpdateCharacter")!, {
+    onEnter: function (args) {
+        log("")
+        log(`[+] Called CharacterActor$$UpdateCharacter`);
+        CharacterActor = args[0]
+        log(`    Saved CharacterActor pointer`);
+        updateCharacter.detach()
+    }
+});
+
 log("[+] Hooking done");
 
 // Export some globals for use in debug console:
@@ -153,6 +167,7 @@ declare const global: any;
 global.maze = maze;
 global.getServerManager = () => ServerManager;
 global.getNormalMovement = () => NormalMovement;
+global.getCharacterActor = () => CharacterActor;
 global.speedHack = speedHack;
 global.jumpHack = jumpHack;
 global.recordNpcPositions = recordNpcPositions;
