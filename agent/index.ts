@@ -49,6 +49,16 @@ function jumpHack(height: number, duration: number) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Tower
+//
+// The above jump hack is good enough to solve the tower too. It takes quite a
+// bit of exploring the map to find the tower. You can jump in the air to see
+// over the top of the maze and avoid walking into dead ends. Once you find the
+// tower, jump from platform to platform to climb the tower.
+//
+// CSCG{SOLVED_THE_MAZE...LONG_WAY_BACK!}
+
+///////////////////////////////////////////////////////////////////////////////
 // Maze Runner
 //
 // Change the planar movement speed to speed up walking and  running on the
