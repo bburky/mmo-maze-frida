@@ -1,4 +1,4 @@
-import { log, error } from "./logger";
+import { error } from "./logger";
 
 export interface Il2cpp {
     ScriptMethod: Symbol[];
@@ -30,17 +30,34 @@ function parseType(type: string) {
         return "pointer"
     } else if (type.endsWith("_t")) {
         return type.slice(0, -2);
+    } else if (type == "UnityEngine_Vector2_o") {
+        return ["float", "float"];
+    } else if (type == "UnityEngine_Vector3_o") {
+        return ["float", "float", "float"];
+    } else if (type == "UnityEngine_Vector4_o") {
+        return ["float", "float", "float", "float"];
+    } else if (type == "UnityEngine_Quaternion_o") {
+        return ["float", "float", "float", "float"];
+    } else if (type == "UnityEngine_Color_o") {
+        return ["float", "float", "float", "float"];
+    } else if (type == "UnityEngine_Rect_o") {
+        return ["float", "float", "float", "float"];
+    } else if (type.endsWith("_o")) {
+        // TODO: lookup other structs somehow?
+        throw new Error(`Unhandled struct type: ${type}`);
     }
-    // TODO: lookup structs and return an array
     return type;
 }
 
 function parseParameters(parameters: string) {
     // Matched parameter types will be something like:
     // TMPro_TextMeshProUGUI_o*, UnityEngine_Color_o, float, bool, bool
-    const parsed = parameters.match(/(?<=\(|, )\w+\*?/g)!.map(parseType);
-    log(parsed);
-    return parsed;
+    const splitParameters = parameters.match(/(?<=\(|, )\w+\*?/g);
+    if (!splitParameters) {
+        // Function with no parameters
+        return [];
+    }
+    return splitParameters.map(parseType);
 }
 
 export function nativeFunction(symbolName: string) {
@@ -49,7 +66,6 @@ export function nativeFunction(symbolName: string) {
         error(`Symbol not found ${symbolName}`);
         return null;
     }
-    log(parseType(symbol.Signature.split(" ")[0]));
     return new NativeFunction(
         GameAssembly.base.add(symbol.Address),
         parseType(symbol.Signature.split(" ")[0]),
